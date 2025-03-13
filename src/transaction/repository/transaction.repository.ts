@@ -1,21 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, FindOptionsWhere } from 'typeorm';
-import { Transaction, TransactionType } from './entities/transaction.entity';
-import { TransactionDetail } from './entities/transaction-detail.entity';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Repository, Between, FindOptionsWhere, DataSource } from 'typeorm';
+import { Transaction, TransactionType } from '../entities/transaction.entity';
 import { PaginationParams } from 'src/utils/pagination.interface';
+import { TransactionService } from '../service/transaction.service';
 
 @Injectable()
-export class TransactionRepository {
-  constructor(
-    @InjectRepository(Transaction)
-    private transactionRepository: Repository<Transaction>,
-    @InjectRepository(TransactionDetail)
-    private transactionDetailRepository: Repository<TransactionDetail>,
-  ) {}
+export class TransactionRepository extends Repository<Transaction> {
+  constructor(private dataSource: DataSource) {
+    super(Transaction, dataSource.createEntityManager());
+  }
 
   async findById(id: number): Promise<Transaction> {
-    return this.transactionRepository.findOne({
+    return this.findOne({
       where: { id },
       relations: ['user', 'order', 'details'],
     });
@@ -24,14 +20,14 @@ export class TransactionRepository {
   async findByTransactionNumber(
     transactionNumber: string,
   ): Promise<Transaction> {
-    return this.transactionRepository.findOne({
+    return this.findOne({
       where: { transactionNumber },
       relations: ['user', 'order', 'details'],
     });
   }
 
   async findByOrderId(orderId: number): Promise<Transaction[]> {
-    return this.transactionRepository.find({
+    return this.find({
       where: { orderId },
       relations: ['details'],
       order: { createdAt: 'DESC' },
@@ -49,7 +45,7 @@ export class TransactionRepository {
       whereClause.type = type;
     }
 
-    return this.transactionRepository.findAndCount({
+    return this.findAndCount({
       where: whereClause,
       relations: ['order'],
       skip: (page - 1) * limit,
@@ -71,8 +67,7 @@ export class TransactionRepository {
     }
 
     // Stats by type and status using raw query for aggregation
-    const stats = await this.transactionRepository
-      .createQueryBuilder('transaction')
+    const stats = await this.createQueryBuilder('transaction')
       .select('transaction.type', 'type')
       .addSelect('transaction.status', 'status')
       .addSelect('COUNT(transaction.id)', 'count')
@@ -83,8 +78,7 @@ export class TransactionRepository {
       .getRawMany();
 
     // Get overall totals
-    const totals = await this.transactionRepository
-      .createQueryBuilder('transaction')
+    const totals = await this.createQueryBuilder('transaction')
       .select('COUNT(transaction.id)', 'totalTransactions')
       .addSelect('SUM(transaction.amount)', 'totalAmount')
       .addSelect('SUM(transaction.pointsEarned)', 'totalPointsEarned')
@@ -103,28 +97,15 @@ export class TransactionRepository {
   async createTransaction(
     transactionData: Partial<Transaction>,
   ): Promise<Transaction> {
-    const transaction = this.transactionRepository.create(transactionData);
-    return this.transactionRepository.save(transaction);
-  }
-
-  async createTransactionDetail(
-    transactionId: number,
-    key: string,
-    value: string,
-  ): Promise<TransactionDetail> {
-    const detail = this.transactionDetailRepository.create({
-      transactionId,
-      key,
-      value,
-    });
-    return this.transactionDetailRepository.save(detail);
+    const transaction = this.create(transactionData);
+    return this.save(transaction);
   }
 
   async updateTransaction(
     id: number,
     data: Partial<Transaction>,
   ): Promise<Transaction> {
-    await this.transactionRepository.update(id, data);
+    await this.update(id, data);
     return this.findById(id);
   }
 }

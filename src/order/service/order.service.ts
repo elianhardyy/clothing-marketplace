@@ -19,6 +19,8 @@ import { ProcessPaymentDto } from '../dto/process-payment.dto';
 import { OrderQueryDto } from '../dto/order-query.dto';
 import { OrderStatsDto } from '../dto/order-stats.dto';
 import { TransactionService } from 'src/transaction/service/transaction.service';
+import { UserRepository } from 'src/user/repository/user.repository';
+import { ProductRepository } from 'src/product/repository/product.repository';
 
 @Injectable()
 export class OrderService {
@@ -27,10 +29,8 @@ export class OrderService {
     private readonly orderItemRepository: OrderItemRepository,
     private readonly transactionService: TransactionService,
     private readonly dataSource: DataSource,
-    @InjectRepository(Product)
-    private readonly productRepository: Repository<Product>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly productRepository: ProductRepository,
+    private readonly userRepository: UserRepository,
   ) {}
 
   /**

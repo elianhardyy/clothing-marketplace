@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { UserService } from './service/user.service';
 import { UserController } from './controller/user.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -11,6 +11,10 @@ import { RoleRepository } from './repository/role.repository';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from 'src/auth/strategy/jwt.strategy';
+import { ProductModule } from 'src/product/product.module';
+import { OrderModule } from 'src/order/order.module';
+import { TransactionModule } from 'src/transaction/transaction.module';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
 
 @Module({
   imports: [
@@ -24,9 +28,19 @@ import { JwtStrategy } from 'src/auth/strategy/jwt.strategy';
         signOptions: { expiresIn: configService.get('JWT_EXPIRATION_TIME') },
       }),
     }),
+
+    forwardRef(() => TransactionModule),
+    forwardRef(() => OrderModule),
+    forwardRef(() => ProductModule),
   ],
   controllers: [UserController],
-  providers: [UserService, UserRepository, RoleRepository, JwtStrategy],
+  providers: [
+    UserService,
+    UserRepository,
+    RoleRepository,
+    JwtStrategy,
+    JwtAuthGuard,
+  ],
   exports: [UserService, UserRepository, RoleRepository],
 })
 export class UserModule {}

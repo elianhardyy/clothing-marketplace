@@ -8,6 +8,7 @@ import {
   Delete,
   Res,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UserService } from '../service/user.service';
@@ -21,6 +22,10 @@ import {
   LoginResponseDto,
   RegisterResponseDto,
 } from '../dto/response/user-response.dto';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from 'src/decorator/roles.decorator';
+import { UserType } from '../enums/user-type.enum';
 
 @Controller('api/users')
 export class UserController {
@@ -74,5 +79,22 @@ export class UserController {
     } catch (error) {
       return ApiResponse.error(res, error.message, HttpStatus.UNAUTHORIZED);
     }
+  }
+
+  @Post('/logout')
+  @UseGuards(JwtAuthGuard)
+  async logout() {
+    return await this.userService.logout();
+  }
+
+  @Get('/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserType.CUSTOMER)
+  async profile(
+    @Param('id') id: number,
+    @Res() res: Response,
+  ): Promise<Response> {
+    const user = await this.userService.findOne(id);
+    return ApiResponse.success(res, 'your profile', user, HttpStatus.OK);
   }
 }

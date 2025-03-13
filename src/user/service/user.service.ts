@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   LoginRequestDto,
@@ -15,6 +16,7 @@ import { Role } from '../entities/role.entity';
 import { UserRole } from '../entities/user-role.entity';
 import {
   LoginResponseDto,
+  LogoutResponseDto,
   RegisterResponseDto,
 } from '../dto/response/user-response.dto';
 import { UserRepository } from '../repository/user.repository';
@@ -28,8 +30,6 @@ export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
-    @InjectRepository(UserRole)
-    private readonly userRoleRepository: Repository<UserRole>,
     private jwtService: JwtService,
     private dataSource: DataSource,
   ) {}
@@ -111,6 +111,13 @@ export class UserService {
     return user;
   }
 
+  async logout(): Promise<LogoutResponseDto> {
+    try {
+      return { success: true, message: 'Logged out successfully' };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
   findAll() {
     return `This action returns all user`;
   }

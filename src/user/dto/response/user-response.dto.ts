@@ -7,3 +7,8 @@ export class RegisterResponseDto {
 export class LoginResponseDto {
   accessToken: string;
 }
+
+export class LogoutResponseDto {
+  success: boolean;
+  message: string;
+}

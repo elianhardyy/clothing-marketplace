@@ -21,7 +21,7 @@ import {
 import { ApiResponse } from 'src/utils/api.response';
 import { Response } from 'express';
 
-@Controller('transactions')
+@Controller('api/transactions')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 

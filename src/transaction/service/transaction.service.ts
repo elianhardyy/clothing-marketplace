@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Connection } from 'typeorm';
@@ -9,29 +11,23 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { User } from 'src/user/entities/user.entity';
 import { Order } from 'src/order/entities/order.entity';
-import { TransactionRepository } from '../transaction.repository';
+import { TransactionRepository } from '../repository/transaction.repository';
 import {
   CreatePaymentTransactionDto,
   CreateRefundTransactionDto,
   TransactionQueryDto,
   TransactionStatsDto,
   UpdateTransactionStatusDto,
-  // CreateRefundTransactionDto,
-  // UpdateTransactionStatusDto,
-  // TransactionQueryDto,
-  // TransactionStatsDto,
 } from '../dto/request/transaction-request.dto';
 import { Transaction } from '../entities/transaction.entity';
 import { TransactionDetail } from '../entities/transaction-detail.entity';
+import { TransactionDetailRepository } from '../repository/transaction-detail.repository';
 
 @Injectable()
 export class TransactionService {
   constructor(
     private readonly transactionRepository: TransactionRepository,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
+    private readonly transactionDetailRepository: TransactionDetailRepository,
     private readonly connection: Connection,
   ) {}
   /**

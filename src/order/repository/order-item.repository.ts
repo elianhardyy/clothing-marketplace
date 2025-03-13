@@ -1,34 +1,33 @@
 // src/order/repositories/order-item.repository.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { OrderItem } from '../entities/order-item.entity';
 
 @Injectable()
-export class OrderItemRepository {
-  constructor(
-    @InjectRepository(OrderItem)
-    private orderItemRepository: Repository<OrderItem>,
-  ) {}
+export class OrderItemRepository extends Repository<OrderItem> {
+  constructor(private dataSource: DataSource) {
+    super(OrderItem, dataSource.createEntityManager());
+  }
 
   async findByOrderId(orderId: number): Promise<OrderItem[]> {
-    return this.orderItemRepository.find({
+    return this.find({
       where: { orderId },
       relations: ['product'],
     });
   }
 
-  async create(orderItemData: Partial<OrderItem>): Promise<OrderItem> {
-    const orderItem = this.orderItemRepository.create(orderItemData);
-    return this.orderItemRepository.save(orderItem);
+  async createOrderItem(orderItemData: Partial<OrderItem>): Promise<OrderItem> {
+    const orderItem = this.create(orderItemData);
+    return this.save(orderItem);
   }
 
-  async save(orderItem: OrderItem): Promise<OrderItem> {
-    return this.orderItemRepository.save(orderItem);
+  async saveOrderItem(orderItem: OrderItem): Promise<OrderItem> {
+    return this.save(orderItem);
   }
 
   async bulkCreate(orderItems: Partial<OrderItem>[]): Promise<OrderItem[]> {
-    const items = this.orderItemRepository.create(orderItems);
-    return this.orderItemRepository.save(items);
+    const items = this.create(orderItems);
+    return this.save(items);
   }
 }

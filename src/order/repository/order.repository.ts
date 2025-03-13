@@ -1,26 +1,25 @@
 // src/order/repositories/order.repository.ts
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository, FindOptionsWhere, DataSource } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
 import { PaginationParams } from 'src/utils/pagination.interface';
 
 @Injectable()
-export class OrderRepository {
-  constructor(
-    @InjectRepository(Order)
-    private orderRepository: Repository<Order>,
-  ) {}
+export class OrderRepository extends Repository<Order> {
+  constructor(private dataSource: DataSource) {
+    super(Order, dataSource.createEntityManager());
+  }
 
   async findById(id: number): Promise<Order> {
-    return this.orderRepository.findOne({
+    return this.findOne({
       where: { id },
       relations: ['user', 'orderItems', 'orderItems.product', 'transactions'],
     });
   }
 
   async findByOrderNumber(orderNumber: string): Promise<Order> {
-    return this.orderRepository.findOne({
+    return this.findOne({
       where: { orderNumber },
       relations: ['user', 'orderItems', 'orderItems.product', 'transactions'],
     });
@@ -38,7 +37,7 @@ export class OrderRepository {
       whereClause.status = status;
     }
 
-    const [orders, total] = await this.orderRepository.findAndCount({
+    const [orders, total] = await this.findAndCount({
       where: whereClause,
       relations: ['orderItems', 'orderItems.product'],
       skip,
@@ -66,7 +65,7 @@ export class OrderRepository {
       whereClause.status = status;
     }
 
-    const [orders, total] = await this.orderRepository.findAndCount({
+    const [orders, total] = await this.findAndCount({
       where: whereClause,
       relations: ['user'],
       skip,
@@ -85,22 +84,22 @@ export class OrderRepository {
     };
   }
 
-  async create(orderData: Partial<Order>): Promise<Order> {
-    const order = this.orderRepository.create(orderData);
-    return this.orderRepository.save(order);
+  async createOrder(orderData: Partial<Order>): Promise<Order> {
+    const order = this.create(orderData);
+    return this.save(order);
   }
 
-  async update(id: number, orderData: Partial<Order>): Promise<Order> {
-    await this.orderRepository.update(id, orderData);
+  async updateOrder(id: number, orderData: Partial<Order>): Promise<Order> {
+    await this.update(id, orderData);
     return this.findById(id);
   }
 
-  async save(order: Order): Promise<Order> {
-    return this.orderRepository.save(order);
+  async saveOrder(order: Order): Promise<Order> {
+    return this.save(order);
   }
 
   async getOrderStats(startDate?: Date, endDate?: Date, status?: OrderStatus) {
-    const queryBuilder = this.orderRepository.createQueryBuilder('order');
+    const queryBuilder = this.createQueryBuilder('order');
 
     if (startDate || endDate) {
       if (startDate) {
@@ -116,8 +115,7 @@ export class OrderRepository {
     }
 
     // Count orders by status
-    const statusCounts = await this.orderRepository
-      .createQueryBuilder('order')
+    const statusCounts = await this.createQueryBuilder('order')
       .select('order.status', 'status')
       .addSelect('COUNT(order.id)', 'count')
       .addSelect('SUM(order.totalAmount)', 'totalAmount')
@@ -127,8 +125,7 @@ export class OrderRepository {
       .getRawMany();
 
     // Get total orders and revenue
-    const totalStats = await this.orderRepository
-      .createQueryBuilder('order')
+    const totalStats = await this.createQueryBuilder('order')
       .select('COUNT(order.id)', 'totalOrders')
       .addSelect('SUM(order.totalAmount)', 'totalRevenue')
       .where(queryBuilder.getQuery().replace(/^WHERE /, ''))
