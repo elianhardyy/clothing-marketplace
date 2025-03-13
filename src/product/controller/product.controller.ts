@@ -21,7 +21,7 @@ import {
 } from '../dto/request/product-request.dto';
 import { ApiResponse } from 'src/utils/api.response';
 
-@Controller('products')
+@Controller('api/products/')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
