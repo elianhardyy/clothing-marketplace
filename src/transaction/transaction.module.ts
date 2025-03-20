@@ -11,6 +11,11 @@ import { TransactionDetailRepository } from './repository/transaction-detail.rep
 import { OrderModule } from 'src/order/order.module';
 import { ProductModule } from 'src/product/product.module';
 import { UserModule } from 'src/user/user.module';
+import { UserRepository } from 'src/user/repository/user.repository';
+import { UserService } from 'src/user/service/user.service';
+import { JwtStrategy } from 'src/auth/strategy/jwt.strategy';
+import { JwtService } from '@nestjs/jwt';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
 
 @Module({
   imports: [
@@ -24,6 +29,11 @@ import { UserModule } from 'src/user/user.module';
     TransactionService,
     TransactionRepository,
     TransactionDetailRepository,
+    UserRepository,
+    UserService,
+    JwtStrategy,
+    JwtService,
+    JwtAuthGuard,
   ],
   exports: [
     TransactionService,

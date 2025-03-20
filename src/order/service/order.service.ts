@@ -4,13 +4,11 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
 import { Order } from '../entities/order.entity';
 import { OrderItem } from '../entities/order-item.entity';
-import { Product } from 'src/product/entities/product.entity';
-import { User } from 'src/user/entities/user.entity';
 import { OrderRepository } from '../repository/order.repository';
 import { OrderItemRepository } from '../repository/order-item.repository';
 import { CreateOrderDto } from '../dto/create-order.dto';
@@ -21,26 +19,24 @@ import { OrderStatsDto } from '../dto/order-stats.dto';
 import { TransactionService } from 'src/transaction/service/transaction.service';
 import { UserRepository } from 'src/user/repository/user.repository';
 import { ProductRepository } from 'src/product/repository/product.repository';
+import { ProductService } from 'src/product/service/product.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
     private readonly orderItemRepository: OrderItemRepository,
+    @Inject(forwardRef(() => TransactionService))
     private readonly transactionService: TransactionService,
-    private readonly dataSource: DataSource,
-    private readonly productRepository: ProductRepository,
     private readonly userRepository: UserRepository,
+    private readonly productRepository: ProductRepository,
+    private readonly productService: ProductService,
   ) {}
 
   /**
    * Create a new order
    */
   async createOrder(userId: number, orderData: CreateOrderDto): Promise<Order> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       const {
         items,
@@ -61,12 +57,13 @@ export class OrderService {
       let totalAmount = 0;
       const shippingPrice = 10; // Fixed shipping price
       const orderItems = [];
+      const productsToUpdate = [];
 
       for (const item of items) {
         // Check if product exists and has sufficient stock
-        const product = await this.productRepository.findOne({
-          where: { id: item.productId },
-        });
+        const product = await this.productService.getProductById(
+          item.productId,
+        );
 
         if (!product) {
           throw new NotFoundException(
@@ -91,9 +88,9 @@ export class OrderService {
           totalPrice: itemTotalPrice,
         });
 
-        // Update product stock
+        // Prepare product stock update
         product.stock -= item.quantity;
-        await queryRunner.manager.save(product);
+        productsToUpdate.push(product);
       }
 
       // Create order
@@ -111,7 +108,7 @@ export class OrderService {
       order.isPaid = false;
       order.isDelivered = false;
 
-      const savedOrder = await queryRunner.manager.save(order);
+      const savedOrder = await this.orderRepository.save(order);
 
       // Create order items
       const orderItemEntities = orderItems.map((item) => {
@@ -124,17 +121,27 @@ export class OrderService {
         return orderItem;
       });
 
-      await queryRunner.manager.save(orderItemEntities);
-      await queryRunner.commitTransaction();
+      await this.orderItemRepository.save(orderItemEntities);
+
+      // Update product stock
+      for (const product of productsToUpdate) {
+        await this.productService.updateProductTransaction(product.id, {
+          stock: product.stock,
+        });
+      }
 
       // Return complete order
       return this.getOrderById(savedOrder.id);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
+  }
+
+  /**
+   * Update an order
+   */
+  async updateOrder(order: Order): Promise<Order> {
+    return this.orderRepository.save(order);
   }
 
   /**
@@ -233,10 +240,6 @@ export class OrderService {
     id: number,
     statusData: UpdateOrderStatusDto,
   ): Promise<Partial<Order>> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       const { status } = statusData;
 
@@ -272,13 +275,14 @@ export class OrderService {
 
           if (product) {
             product.stock += item.quantity;
-            await queryRunner.manager.save(product);
+            await this.productService.updateProduct(product.id, {
+              stock: product.stock,
+            });
           }
         }
       }
 
-      await queryRunner.manager.save(order);
-      await queryRunner.commitTransaction();
+      await this.orderRepository.save(order);
 
       return {
         id: order.id,
@@ -287,10 +291,7 @@ export class OrderService {
         deliveredAt: order.deliveredAt,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 

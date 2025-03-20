@@ -111,6 +111,14 @@ export class UserService {
     return user;
   }
 
+  async updateUserPoints(userId: number, points: number): Promise<User> {
+    const user = await this.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    user.points = points;
+    return this.userRepository.save(user);
+  }
   async logout(): Promise<LogoutResponseDto> {
     try {
       return { success: true, message: 'Logged out successfully' };

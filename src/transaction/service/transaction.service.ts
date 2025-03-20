@@ -2,15 +2,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Connection } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
-import { User } from 'src/user/entities/user.entity';
-import { Order } from 'src/order/entities/order.entity';
 import { TransactionRepository } from '../repository/transaction.repository';
 import {
   CreatePaymentTransactionDto,
@@ -22,14 +16,18 @@ import {
 import { Transaction } from '../entities/transaction.entity';
 import { TransactionDetail } from '../entities/transaction-detail.entity';
 import { TransactionDetailRepository } from '../repository/transaction-detail.repository';
+import { UserService } from 'src/user/service/user.service';
+import { OrderService } from 'src/order/service/order.service';
 
 @Injectable()
 export class TransactionService {
   constructor(
     private readonly transactionRepository: TransactionRepository,
     private readonly transactionDetailRepository: TransactionDetailRepository,
-    private readonly connection: Connection,
+    private readonly userService: UserService,
+    private readonly orderService: OrderService,
   ) {}
+
   /**
    * Create a new payment transaction
    */
@@ -44,20 +42,14 @@ export class TransactionService {
       paymentDetails = {},
     } = createDto;
 
-    const queryRunner = this.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       // Calculate points earned (1 point per $10)
       const pointsEarned = Math.floor(amount / 10);
 
       // Verify order exists and belongs to user
-      const order = await queryRunner.manager.findOne(Order, {
-        where: { id: orderId, userId },
-      });
+      const order = await this.orderService.getOrderById(orderId);
 
-      if (!order) {
+      if (!order || order.userId !== userId) {
         throw new BadRequestException(
           'Order not found or does not belong to the user',
         );
@@ -67,7 +59,7 @@ export class TransactionService {
       const transactionNumber = `PAY-${Date.now()}-${uuidv4().substring(0, 8)}`;
 
       // Create transaction record
-      const newTransaction = queryRunner.manager.create(Transaction, {
+      const newTransaction = this.transactionRepository.create({
         transactionNumber,
         userId,
         orderId,
@@ -81,7 +73,8 @@ export class TransactionService {
         externalReference: paymentDetails.externalReference,
       });
 
-      const savedTransaction = await queryRunner.manager.save(newTransaction);
+      const savedTransaction =
+        await this.transactionRepository.save(newTransaction);
 
       // Store additional payment details
       const detailsToStore = { ...paymentDetails };
@@ -90,22 +83,18 @@ export class TransactionService {
 
       for (const [key, value] of Object.entries(detailsToStore)) {
         if (value) {
-          const detail = queryRunner.manager.create(TransactionDetail, {
+          const detail = this.transactionDetailRepository.create({
             transactionId: savedTransaction.id,
             key,
             value: String(value),
           });
-          await queryRunner.manager.save(detail);
+          await this.transactionDetailRepository.save(detail);
         }
       }
 
-      await queryRunner.commitTransaction();
       return this.transactionRepository.findById(savedTransaction.id);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -118,14 +107,9 @@ export class TransactionService {
   ): Promise<Transaction> {
     const { status, externalReference } = updateDto;
 
-    const queryRunner = this.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      const transaction = await queryRunner.manager.findOne(Transaction, {
-        where: { id: transactionId },
-      });
+      const transaction =
+        await this.transactionRepository.findById(transactionId);
 
       if (!transaction) {
         throw new NotFoundException('Transaction not found');
@@ -140,22 +124,21 @@ export class TransactionService {
         transaction.externalReference = externalReference;
       }
 
-      await queryRunner.manager.save(transaction);
+      await this.transactionRepository.save(transaction);
 
       // Process status change actions
       if (status === 'completed' && previousStatus !== 'completed') {
         // Order is now paid
-        await queryRunner.manager.update(Order, transaction.orderId, {
-          isPaid: true,
-          paidAt: new Date(),
-        });
+        const order = await this.orderService.getOrderById(transaction.orderId);
+        order.isPaid = true;
+        order.paidAt = new Date();
+        await this.orderService.updateOrder(order);
 
         // Add points to user
         if (transaction.pointsEarned > 0) {
           await this.updateUserPoints(
             transaction.userId,
             transaction.pointsEarned,
-            queryRunner,
           );
         }
       }
@@ -169,17 +152,12 @@ export class TransactionService {
         await this.updateUserPoints(
           transaction.userId,
           -transaction.pointsEarned,
-          queryRunner,
         );
       }
 
-      await queryRunner.commitTransaction();
       return this.transactionRepository.findById(transactionId);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -192,25 +170,21 @@ export class TransactionService {
     const { userId, orderId, amount, reason, originalTransactionId } =
       createDto;
 
-    const queryRunner = this.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       // Find original transaction
       let originalTransaction: Transaction | null;
 
       if (originalTransactionId) {
-        originalTransaction = await queryRunner.manager.findOne(Transaction, {
-          where: { id: originalTransactionId },
-        });
+        originalTransaction = await this.transactionRepository.findById(
+          originalTransactionId,
+        );
 
         if (!originalTransaction || originalTransaction.orderId !== orderId) {
           throw new BadRequestException('Invalid original transaction');
         }
       } else {
         // Find the payment transaction for this order
-        originalTransaction = await queryRunner.manager.findOne(Transaction, {
+        originalTransaction = await this.transactionRepository.findOne({
           where: {
             orderId,
             type: 'payment',
@@ -236,7 +210,7 @@ export class TransactionService {
       const transactionNumber = `REF-${Date.now()}-${uuidv4().substring(0, 8)}`;
 
       // Create refund transaction
-      const refundTransaction = queryRunner.manager.create(Transaction, {
+      const refundTransaction = this.transactionRepository.create({
         transactionNumber,
         userId,
         orderId,
@@ -251,25 +225,24 @@ export class TransactionService {
       });
 
       const savedTransaction =
-        await queryRunner.manager.save(refundTransaction);
+        await this.transactionRepository.save(refundTransaction);
 
       // Add refund details
-      const originalTransactionDetail = queryRunner.manager.create(
-        TransactionDetail,
+      const originalTransactionDetail = this.transactionDetailRepository.create(
         {
           transactionId: savedTransaction.id,
           key: 'originalTransactionId',
           value: originalTransaction.id.toString(),
         },
       );
-      await queryRunner.manager.save(originalTransactionDetail);
+      await this.transactionDetailRepository.save(originalTransactionDetail);
 
-      const reasonDetail = queryRunner.manager.create(TransactionDetail, {
+      const reasonDetail = this.transactionDetailRepository.create({
         transactionId: savedTransaction.id,
         key: 'reason',
         value: reason,
       });
-      await queryRunner.manager.save(reasonDetail);
+      await this.transactionDetailRepository.save(reasonDetail);
 
       // If this is a full refund and the refund is completed immediately
       if (amount === originalTransaction.amount) {
@@ -277,17 +250,13 @@ export class TransactionService {
         const pointsToDeduct = originalTransaction.pointsEarned;
 
         if (pointsToDeduct > 0) {
-          await this.updateUserPoints(userId, -pointsToDeduct, queryRunner);
+          await this.updateUserPoints(userId, -pointsToDeduct);
         }
       }
 
-      await queryRunner.commitTransaction();
       return this.transactionRepository.findById(savedTransaction.id);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -295,14 +264,9 @@ export class TransactionService {
    * Complete a refund transaction
    */
   async completeRefundTransaction(transactionId: number): Promise<Transaction> {
-    const queryRunner = this.connection.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      const transaction = await queryRunner.manager.findOne(Transaction, {
-        where: { id: transactionId },
-      });
+      const transaction =
+        await this.transactionRepository.findById(transactionId);
 
       if (
         !transaction ||
@@ -314,48 +278,41 @@ export class TransactionService {
 
       // Update transaction status
       transaction.status = 'completed';
-      await queryRunner.manager.save(transaction);
+      await this.transactionRepository.save(transaction);
 
       // Get original transaction ID
-      const originalTransactionDetail = await queryRunner.manager.findOne(
-        TransactionDetail,
-        {
+      const originalTransactionDetail =
+        await this.transactionDetailRepository.findOne({
           where: {
             transactionId: transaction.id,
             key: 'originalTransactionId',
           },
-        },
-      );
+        });
 
       if (originalTransactionDetail) {
         const originalTransactionId = parseInt(originalTransactionDetail.value);
 
         // Get original transaction
-        const originalTransaction = await queryRunner.manager.findOne(
-          Transaction,
-          {
-            where: { id: originalTransactionId },
-          },
+        const originalTransaction = await this.transactionRepository.findById(
+          originalTransactionId,
         );
 
         if (originalTransaction) {
           // If this is a full refund
           if (Math.abs(transaction.amount) === originalTransaction.amount) {
             // Update order status
-            await queryRunner.manager.update(Order, transaction.orderId, {
-              status: 'cancelled',
-            });
+            const order = await this.orderService.getOrderById(
+              transaction.orderId,
+            );
+            order.status = 'cancelled';
+            await this.orderService.updateOrder(order);
           }
         }
       }
 
-      await queryRunner.commitTransaction();
       return this.transactionRepository.findById(transactionId);
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw error;
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -412,19 +369,13 @@ export class TransactionService {
   /**
    * Helper method to update user points
    */
-  private async updateUserPoints(
-    userId: number,
-    pointsChange: number,
-    queryRunner: any,
-  ) {
-    const user = await queryRunner.manager.findOne(User, {
-      where: { id: userId },
-    });
+  private async updateUserPoints(userId: number, pointsChange: number) {
+    const user = await this.userService.findOne(userId);
 
     if (user) {
       const newPoints = Math.max(0, user.points + pointsChange);
       user.points = newPoints;
-      await queryRunner.manager.save(user);
+      await this.userService.updateUserPoints(user.id, newPoints);
     }
   }
 }

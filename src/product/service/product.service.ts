@@ -180,4 +180,17 @@ export class ProductService {
 
     return { success: true };
   }
+
+  async updateProductTransaction(id: number, updates: any): Promise<Product> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    Object.assign(product, updates);
+    return this.productRepository.save(product);
+  }
 }
