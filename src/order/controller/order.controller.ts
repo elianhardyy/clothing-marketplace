@@ -24,12 +24,13 @@ import { ApiResponse } from 'src/utils/api.response';
 import { Response } from 'express';
 import { UserType } from 'src/user/enums/user-type.enum';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserType.MERCHANT, UserType.CUSTOMER)
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   async createOrder(
     @Request() req,
     @Body() createOrderDto: CreateOrderDto,
@@ -43,7 +44,6 @@ export class OrderController {
   }
 
   @Get('my-orders')
-  @UseGuards(JwtAuthGuard)
   async getMyOrders(
     @Request() req,
     @Query() query: OrderQueryDto,
@@ -63,7 +63,6 @@ export class OrderController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   async getOrderById(
     @Request() req,
     @Param('id') id: number,
@@ -89,8 +88,6 @@ export class OrderController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserType.MERCHANT, UserType.CUSTOMER)
   async getAllOrders(@Query() query: OrderQueryDto, @Res() res: Response) {
     const { orders, pagination } = await this.orderService.getAllOrders(query);
     return ApiResponse.success(
@@ -103,8 +100,6 @@ export class OrderController {
   }
 
   @Put(':id/status')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserType.MERCHANT, UserType.CUSTOMER)
   async updateOrderStatus(
     @Param('id') id: number,
     @Body() updateStatusDto: UpdateOrderStatusDto,
@@ -122,7 +117,6 @@ export class OrderController {
   }
 
   @Post(':id/pay')
-  @UseGuards(JwtAuthGuard)
   async processPayment(
     @Request() req,
     @Param('id') id: number,
@@ -142,8 +136,6 @@ export class OrderController {
   }
 
   @Get('stats/overview')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserType.MERCHANT, UserType.CUSTOMER)
   async getOrderStats(@Query() query: OrderStatsDto, @Res() res: Response) {
     const stats = await this.orderService.getOrderStats(query);
     return ApiResponse.success(
@@ -154,8 +146,6 @@ export class OrderController {
   }
 
   @Get('customers/list')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserType.MERCHANT, UserType.CUSTOMER)
   async getMerchantCustomers(
     @Query() query: OrderQueryDto,
     @Res() res: Response,
