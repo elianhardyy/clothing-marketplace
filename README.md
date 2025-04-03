@@ -184,6 +184,6 @@ The collection uses the following variables:
 
 - `git clone https://github.com/elianhardyy/clothing-marketplace.git`
 - `cd clothing-marketplace`
-- `npm install`
+- `npm install --legacy-peer-deps` or `npm install --force`
 - `npm run seed`
 - `npm run start:dev`
