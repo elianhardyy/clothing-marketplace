@@ -101,7 +101,7 @@ export class UserService {
   async validateUser(userId: number) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['userRoles.role'],
+      relations: ['userRoles', 'userRoles.role'],
     });
     console.log(user);
     if (!user) {

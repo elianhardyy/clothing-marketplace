@@ -31,10 +31,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // }
   async validate(payload: any) {
     const user = await this.userService.validateUser(payload.sub);
+    console.log(user.userRoles.map((v, i) => v.role.name));
     return {
       id: user.id,
       email: user.email,
-      roles: user.userRoles.map((v, i) => v.role.name),
+      roles: user.userRoles.map((v, i) => v.role.name), //['MERCHANT']
     };
   }
 }

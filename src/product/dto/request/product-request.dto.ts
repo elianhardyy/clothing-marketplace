@@ -1,13 +1,30 @@
+import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+
 export class CreateProductRequestDto {
+  @IsString()
+  @IsNotEmpty()
   name: string;
+  @IsString()
+  @IsNotEmpty()
   description: string;
+  @IsNotEmpty()
+  @IsNumber({}, { message: 'invalid number' })
+  @Min(0, { message: 'Value must be a non-negative number' })
   price: number;
+  @IsNotEmpty()
+  @IsNumber({}, { message: 'invalid number' })
+  @Min(0, { message: 'Value must be a non-negative number' })
   stock?: number;
   images?: string[];
+  @IsNotEmpty()
   categoryId: number;
+  @IsNotEmpty()
   sizes?: string[];
+  @IsNotEmpty()
   colors?: string[];
+  @IsNotEmpty()
   brand: string;
+  @IsNotEmpty()
   featured?: boolean;
 }
 

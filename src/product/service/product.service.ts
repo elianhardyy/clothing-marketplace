@@ -33,19 +33,6 @@ export class ProductService {
   async createProduct(
     dto: CreateProductRequestDto,
   ): Promise<ProductResponseDto> {
-    // Validate required fields
-    if (
-      !dto.name ||
-      !dto.description ||
-      !dto.price ||
-      !dto.categoryId ||
-      !dto.brand
-    ) {
-      throw new BadRequestException(
-        'Name, description, price, categoryId, and brand are required',
-      );
-    }
-
     // Check if category exists
     const category = await this.categoryRepository.findOne({
       where: { id: dto.categoryId },
