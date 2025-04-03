@@ -101,9 +101,9 @@ export class UserService {
   async validateUser(userId: number) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
-      relations: ['userRoles', 'userRoles.role'],
+      relations: ['userRoles.role'],
     });
-
+    console.log(user);
     if (!user) {
       throw new NotFoundException('User not found');
     }
