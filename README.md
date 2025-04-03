@@ -2,6 +2,16 @@
 
 This document provides details about all available API endpoints for the E-Commerce platform.
 
+## YOU CAN READ MORE REQUEST IN FILE `request.json`
+
+## How To Install
+
+- `git clone https://github.com/elianhardyy/clothing-marketplace.git`
+- `cd clothing-marketplace`
+- `npm install --legacy-peer-deps` or `npm install --force`
+- `npm run seed`
+- `npm run start:dev`
+
 ## Base URL
 
 ```
@@ -177,13 +187,3 @@ The collection uses the following variables:
 - `transactionId`: Transaction ID for transaction-specific operations
 - `orderId`: Order ID for order-specific operations
 - `productId`: Product ID for product-specific operations
-
-## YOU CAN READ MORE REQUEST IN FILE `request.json`
-
-## How To Install
-
-- `git clone https://github.com/elianhardyy/clothing-marketplace.git`
-- `cd clothing-marketplace`
-- `npm install --legacy-peer-deps` or `npm install --force`
-- `npm run seed`
-- `npm run start:dev`
