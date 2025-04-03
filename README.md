@@ -179,3 +179,11 @@ The collection uses the following variables:
 - `productId`: Product ID for product-specific operations
 
 ## YOU CAN READ MORE REQUEST IN FILE `request.json`
+
+## How To Install
+
+- `git clone https://github.com/elianhardyy/clothing-marketplace.git`
+- `cd clothing-marketplace`
+- `npm install`
+- `npm run seed`
+- `npm run start:dev`

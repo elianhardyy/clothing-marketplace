@@ -9,6 +9,8 @@ import { ProductRepository } from './repository/product.repository';
 import { TransactionModule } from 'src/transaction/transaction.module';
 import { OrderModule } from 'src/order/order.module';
 import { UserModule } from 'src/user/user.module';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { JwtStrategy } from 'src/auth/strategy/jwt.strategy';
 
 @Module({
   imports: [
@@ -18,7 +20,7 @@ import { UserModule } from 'src/user/user.module';
     forwardRef(() => UserModule),
   ],
   controllers: [ProductController],
-  providers: [ProductService, ProductRepository],
+  providers: [ProductService, ProductRepository, JwtStrategy, JwtAuthGuard],
   exports: [ProductService, ProductRepository],
 })
 export class ProductModule {}

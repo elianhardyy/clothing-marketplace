@@ -16,6 +16,9 @@ import { Order } from './order/entities/order.entity';
 import { OrderItem } from './order/entities/order-item.entity';
 import { Transaction } from './transaction/entities/transaction.entity';
 import { TransactionDetail } from './transaction/entities/transaction-detail.entity';
+import { SeedCommand } from './app.command';
+import { SeedModule } from './database/seeds/seed.module';
+import { ConsoleModule } from './console/console.module';
 
 @Module({
   imports: [
@@ -23,6 +26,8 @@ import { TransactionDetail } from './transaction/entities/transaction-detail.ent
     UserModule,
     OrderModule,
     TransactionModule,
+    SeedModule,
+    ConsoleModule,
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -49,6 +54,6 @@ import { TransactionDetail } from './transaction/entities/transaction-detail.ent
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, SeedCommand],
 })
 export class AppModule {}

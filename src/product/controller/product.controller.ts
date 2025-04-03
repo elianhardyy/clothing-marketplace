@@ -11,6 +11,7 @@ import {
   HttpStatus,
   HttpCode,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ProductService } from '../service/product.service';
@@ -20,12 +21,18 @@ import {
   UpdateProductRequestDto,
 } from '../dto/request/product-request.dto';
 import { ApiResponse } from 'src/utils/api.response';
+import { JwtAuthGuard } from 'src/guards/jwt.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { Roles } from 'src/decorator/roles.decorator';
+import { UserType } from 'src/user/enums/user-type.enum';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('api/products/')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
+  @Roles(UserType.MERCHANT)
   @HttpCode(HttpStatus.CREATED)
   async createProduct(
     @Body() dto: CreateProductRequestDto,

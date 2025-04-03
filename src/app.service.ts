@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+  async getHello() {
+    // console.log('Seed db');
+    // await this.categorySeeder.seed();
+    console.log('seed successfully');
   }
 }
