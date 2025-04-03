@@ -1,5 +1,5 @@
 import { Command, CommandRunner } from 'nest-commander';
-import { SeedService } from 'src/database/seeds/services/category.service.seed';
+import { SeedService } from 'src/database/services/category.service.seed';
 
 @Command({ name: 'seed', description: 'Seed the database with initial data' })
 export class SeedCommand extends CommandRunner {

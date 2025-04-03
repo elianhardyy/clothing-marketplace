@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CategorySeeder } from '../category.seed';
+import { CategorySeeder } from '../seeds/category.seed';
 
 @Injectable()
 export class SeedService {
