@@ -18,6 +18,13 @@ This document provides details about all available API endpoints for the E-Comme
 http://localhost:3000/api
 ```
 
+or
+
+if my PC is ON
+```
+https://clothing-market.elianha.my.id/api
+```
+
 ## Authentication
 
 Most endpoints require authentication using a JWT token. Include the token in the Authorization header:
