@@ -47,8 +47,8 @@ Authorization: Bearer your_jwt_token_here
 | ------ | ------------------------ | -------------------------------- | -------------- |
 | POST   | `/users/signup/merchant` | Register a new user merhcant     | Not Required   |
 | POST   | `/users/signup/customer` | Register a new user customer     | Not Required   |
-| POST   | `/users/login` `         | Login user and get access token  | Not Required   |
-| POST   | `/users/logout` `        | Logout user                      | Not Required   |
+| POST   | `/users/login`           | Login user and get access token  | Not Required   |
+| POST   | `/users/logout`          | Logout user                      | Not Required   |
 | GET    | `/users/profile`         | Get authenticated user's profile | Required       |
 | GET    | `/users/exists`          | Check if a user exists by email  | Required       |
 | PUT    | `/users/change-password` | Change user password             | Required       |
@@ -113,7 +113,6 @@ Content-Type: application/json
   "name": "John Doe",
   "email": "john.doe@example.com",
   "password": "SecurePassword123!",
-  "role": "customer"
 }
 ```
 
