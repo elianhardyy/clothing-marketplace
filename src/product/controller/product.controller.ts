@@ -27,12 +27,12 @@ import { Roles } from 'src/decorator/roles.decorator';
 import { UserType } from 'src/user/enums/user-type.enum';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/product')
+@Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  @Roles(UserType.MERCHANT, UserType.CUSTOMER)
+  @Roles(UserType.MERCHANT)
   @HttpCode(HttpStatus.CREATED)
   async createProduct(
     @Body() dto: CreateProductRequestDto,

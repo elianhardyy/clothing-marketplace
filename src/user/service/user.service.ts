@@ -90,9 +90,15 @@ export class UserService {
   async login(dto: LoginRequestDto): Promise<LoginResponseDto> {
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) throw new ConflictException('Email not found');
+    //user.userRoles.map((v, i) => v.role.name)
+    // const roleUser = user.userRoles.map((v, i) => {
+    //   console.log(v.role.name);
+    // });
+    //console.log(roleUser);
     const payload = {
       sub: user.id,
       email: user.email,
+      role: user.userRoles.map((v, i) => v.role.name),
     };
     const token = this.jwtService.sign(payload);
     return UserMapper.toResponseLogin(token);
@@ -103,7 +109,6 @@ export class UserService {
       where: { id: userId },
       relations: ['userRoles', 'userRoles.role'],
     });
-    console.log(user);
     if (!user) {
       throw new NotFoundException('User not found');
     }
